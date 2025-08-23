@@ -6,6 +6,30 @@ use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\CarritoController;
 
+// RUTA TEMPORAL PARA EJECUTAR COMANDOS (ELIMINAR DESPUÉS)
+Route::get('/fix-commands', function() {
+    try {
+        Artisan::call('storage:link', ['--force' => true]);
+        Artisan::call('config:clear');
+        Artisan::call('route:clear');
+        Artisan::call('view:clear');
+        Artisan::call('cache:clear');
+        
+        return '<h2>✅ Commands executed successfully!</h2>' .
+               '<ul>' .
+               '<li>✅ storage:link --force</li>' .
+               '<li>✅ config:clear</li>' .
+               '<li>✅ route:clear</li>' .
+               '<li>✅ view:clear</li>' .
+               '<li>✅ cache:clear</li>' .
+               '</ul>' .
+               '<p><a href="' . url('/') . '">← Volver al inicio</a></p>' .
+               '<p><strong>Nota:</strong> Eliminar esta ruta después del uso.</p>';
+    } catch (Exception $e) {
+        return '<h2>❌ Error:</h2><p>' . $e->getMessage() . '</p>';
+    }
+});
+
 // Página principal - Catálogo
 Route::get('/', [CatalogoController::class, 'index'])->name('catalogo.index');
 Route::get('/articulo/{articulo}', [CatalogoController::class, 'show'])->name('catalogo.show');
