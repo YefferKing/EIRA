@@ -30,7 +30,7 @@
         </div>
         @endif
 
-        <form action="{{ route('admin.articulos.update', $articulo) }}" method="POST" enctype="multipart/form-data" id="form-actualizar-articulo">
+        <form action="{{ route('admin.articulos.update', $articulo) }}" method="POST" enctype="multipart/form-data" id="form-actualizar-articulo" onsubmit="return confirmarActualizacion()">
             @csrf
             @method('PUT')
             
@@ -325,9 +325,9 @@
                     <div class="card">
                         <div class="card-body">
                             <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-brand-primary btn-lg" id="btn-actualizar">
-                                💾 Actualizar Artículo
-                            </button>
+                                <button type="submit" class="btn btn-brand-primary btn-lg">
+                                    💾 Actualizar Artículo
+                                </button>
                                 <a href="{{ route('admin.articulos.index') }}" 
                                    class="btn btn-brand-secondary">
                                     ← Volver al Listado
@@ -545,14 +545,6 @@ function confirmarActualizacion() {
     
     return confirm('¿Estás seguro de actualizar este artículo?');
 }
-
-document.getElementById('btn-actualizar').addEventListener('click', function(e) {
-    e.preventDefault(); // Mover preventDefault aquí
-    
-    if (confirmarActualizacion()) {
-        document.getElementById('form-actualizar-articulo').submit();
-    }
-});
 </script>
 @endpush
 @endsection
