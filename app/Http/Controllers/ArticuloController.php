@@ -177,7 +177,16 @@ class ArticuloController extends Controller
     }
 
     public function update(Request $request, Articulo $articulo)
-    {
+{
+    // LOG PARA VERIFICAR QUE LLEGA AL MÉTODO CORRECTO
+    \Log::info('=== MÉTODO UPDATE LLAMADO CORRECTAMENTE ===');
+    \Log::info('Request method: ' . $request->method());
+    \Log::info('Request URL: ' . $request->fullUrl());
+    \Log::info('Artículo ID: ' . $articulo->id);
+    \Log::info('Request _method: ' . $request->input('_method'));
+    \Log::info('Es petición AJAX: ' . ($request->ajax() ? 'Sí' : 'No'));
+    
+    try {
         $request->validate([
             'codigo' => 'required|max:50|unique:articulos,codigo,' . $articulo->id,
             'nombre' => 'required|max:255',
@@ -192,15 +201,23 @@ class ArticuloController extends Controller
             'valor_especial.lt' => 'El precio especial debe ser menor al precio regular.',
         ]);
 
+        \Log::info('Validación pasada correctamente');
+
         $data = $request->except(['imagenes']);
         
         // Determinar si tiene descuento
         $data['tiene_descuento'] = $request->filled('valor_especial') && $request->valor_especial < $request->valor;
         
+        \Log::info('Datos a actualizar: ', $data);
+        
         $articulo->update($data);
+        
+        \Log::info('Artículo actualizado correctamente');
 
         // Manejar nuevas imágenes (si se enviaron)
         if ($request->hasFile('imagenes')) {
+            \Log::info('Procesando ' . count($request->file('imagenes')) . ' nuevas imágenes...');
+            
             $cloudinary = new Cloudinary([
                 'cloud' => [
                     'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
@@ -213,7 +230,6 @@ class ArticuloController extends Controller
             
             foreach ($request->file('imagenes') as $index => $imagen) {
                 try {
-                    // Usar Cloudinary en lugar de almacenamiento local
                     $result = $cloudinary->uploadApi()->upload($imagen->getRealPath(), [
                         'folder' => 'eira'
                     ]);
@@ -226,15 +242,55 @@ class ArticuloController extends Controller
                         'orden' => $ultimoOrden + $index + 1,
                         'es_principal' => $articulo->imagenes()->count() === 0 && $index === 0
                     ]);
+                    
+                    \Log::info('Imagen subida correctamente: ' . $uploadedFileUrl);
                 } catch (\Exception $e) {
                     \Log::error('Error subiendo imagen: ' . $e->getMessage());
                 }
             }
         }
 
+        \Log::info('Update completado exitosamente');
+        
+        // RESPUESTA DIFERENCIADA PARA AJAX VS NAVEGADOR
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Artículo actualizado exitosamente.',
+                'redirect' => route('admin.articulos.index')
+            ]);
+        }
+
         return redirect()->route('admin.articulos.index')
                         ->with('success', 'Artículo actualizado exitosamente.');
+                        
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::error('Error de validación: ', $e->errors());
+        
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación.',
+                'errors' => $e->errors()
+            ], 422);
+        }
+        
+        return back()->withErrors($e->errors())->withInput();
+        
+    } catch (\Exception $e) {
+        \Log::error('Error general en update: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno del servidor: ' . $e->getMessage()
+            ], 500);
+        }
+        
+        return back()->withErrors(['error' => 'Error al actualizar el artículo: ' . $e->getMessage()])->withInput();
     }
+}
 
     public function destroy(Articulo $articulo)
 {

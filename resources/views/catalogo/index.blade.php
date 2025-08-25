@@ -131,9 +131,53 @@
     </div>
 
     <!-- Paginación -->
-    <div class="d-flex justify-content-center mt-4">
-        {{ $articulos->appends(request()->query())->links() }}
+    @if($articulos->hasPages())
+    <div class="d-flex justify-content-center align-items-center mt-4">
+        <div class="pagination-container">
+            <div class="pagination-info">
+                <span class="text-muted">
+                    Mostrando {{ $articulos->firstItem() ?? 0 }} - {{ $articulos->lastItem() ?? 0 }} 
+                    de {{ $articulos->total() }} resultados
+                </span>
+            </div>
+            
+            <nav class="custom-pagination">
+                {{-- Botón Anterior --}}
+                @if ($articulos->onFirstPage())
+                    <span class="page-btn disabled">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </span>
+                @else
+                    <a href="{{ $articulos->previousPageUrl() }}" class="page-btn">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </a>
+                @endif
+
+                {{-- Números de página --}}
+                <div class="page-numbers">
+                    @foreach ($articulos->getUrlRange(1, $articulos->lastPage()) as $page => $url)
+                        @if ($page == $articulos->currentPage())
+                            <span class="page-num active">{{ $page }}</span>
+                        @else
+                            <a href="{{ $url }}" class="page-num">{{ $page }}</a>
+                        @endif
+                    @endforeach
+                </div>
+
+                {{-- Botón Siguiente --}}
+                @if ($articulos->hasMorePages())
+                    <a href="{{ $articulos->nextPageUrl() }}" class="page-btn">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </a>
+                @else
+                    <span class="page-btn disabled">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </span>
+                @endif
+            </nav>
+        </div>
     </div>
+    @endif
     
     @else
     <div class="text-center py-5">
@@ -177,5 +221,174 @@
 
 .color{
     color: #401874;
+}
+
+.pagination-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(64, 24, 116, 0.1);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.custom-pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #401874, #6B46C1);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(64, 24, 116, 0.3);
+}
+
+.page-btn:hover:not(.disabled) {
+    background: linear-gradient(135deg, #2d0f4f, #553C9A);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(64, 24, 116, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.page-btn.disabled {
+    background: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 4px;
+    margin: 0 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    text-decoration: none;
+    color: #401874;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: rgba(64, 24, 116, 0.05);
+    border: 2px solid transparent;
+}
+
+.page-num:hover:not(.active) {
+    background: rgba(64, 24, 116, 0.15);
+    color: #401874;
+    text-decoration: none;
+    transform: scale(1.05);
+}
+
+.page-num.active {
+    background: linear-gradient(135deg, #401874, #6B46C1);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(64, 24, 116, 0.3);
+    transform: scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pagination-container {
+        padding: 16px;
+        margin: 0 16px;
+    }
+    
+    .custom-pagination {
+        gap: 6px;
+    }
+    
+    .page-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .page-numbers {
+        margin: 0 8px;
+        gap: 2px;
+    }
+    
+    .page-num {
+        width: 38px;
+        height: 38px;
+        font-size: 13px;
+    }
+    
+    .pagination-info {
+        font-size: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-btn i {
+        display: none;
+    }
+    
+    .page-btn {
+        padding: 10px 12px;
+    }
+    
+    .page-numbers {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pagination-container {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Focus states para accesibilidad */
+.page-btn:focus,
+.page-num:focus {
+    outline: 2px solid #401874;
+    outline-offset: 2px;
 }
 </style>
