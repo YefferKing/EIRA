@@ -130,54 +130,43 @@
         @endforeach
     </div>
 
-    <!-- Paginación -->
-    @if($articulos->hasPages())
-    <div class="d-flex justify-content-center align-items-center mt-4">
-        <div class="pagination-container">
-            <div class="pagination-info">
-                <span class="text-muted">
-                    Mostrando {{ $articulos->firstItem() ?? 0 }} - {{ $articulos->lastItem() ?? 0 }} 
-                    de {{ $articulos->total() }} resultados
-                </span>
-            </div>
-            
-            <nav class="custom-pagination">
-                {{-- Botón Anterior --}}
-                @if ($articulos->onFirstPage())
-                    <span class="page-btn disabled">
-                        <i class="fas fa-chevron-left"></i> Anterior
-                    </span>
-                @else
-                    <a href="{{ $articulos->previousPageUrl() }}" class="page-btn">
-                        <i class="fas fa-chevron-left"></i> Anterior
-                    </a>
-                @endif
-
-                {{-- Números de página --}}
-                <div class="page-numbers">
-                    @foreach ($articulos->getUrlRange(1, $articulos->lastPage()) as $page => $url)
-                        @if ($page == $articulos->currentPage())
-                            <span class="page-num active">{{ $page }}</span>
-                        @else
-                            <a href="{{ $url }}" class="page-num">{{ $page }}</a>
-                        @endif
-                    @endforeach
-                </div>
-
-                {{-- Botón Siguiente --}}
-                @if ($articulos->hasMorePages())
-                    <a href="{{ $articulos->nextPageUrl() }}" class="page-btn">
-                        Siguiente <i class="fas fa-chevron-right"></i>
-                    </a>
-                @else
-                    <span class="page-btn disabled">
-                        Siguiente <i class="fas fa-chevron-right"></i>
-                    </span>
-                @endif
-            </nav>
+<!-- Paginación responsive -->
+@if($articulos->hasPages())
+<div class="d-flex justify-content-center mt-4">
+    <div class="pagination-container">
+        <div class="pagination-info">
+            <span class="text-muted">
+                Mostrando {{ $articulos->firstItem() ?? 0 }} - {{ $articulos->lastItem() ?? 0 }} 
+                de {{ $articulos->total() }} resultados
+            </span>
         </div>
+        
+        <nav>
+            <!-- Botón Anterior -->
+            @if ($articulos->onFirstPage())
+                <span class="page-btn disabled">
+                    <i class="fas fa-chevron-left"></i>
+                </span>
+            @else
+                <a href="{{ $articulos->previousPageUrl() }}" class="page-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            @endif
+
+            <!-- Botón Siguiente -->
+            @if ($articulos->hasMorePages())
+                <a href="{{ $articulos->nextPageUrl() }}" class="page-btn">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            @else
+                <span class="page-btn disabled">
+                    <i class="fas fa-chevron-right"></i>
+                </span>
+            @endif
+        </nav>
     </div>
-    @endif
+</div>
+@endif
     
     @else
     <div class="text-center py-5">
@@ -229,41 +218,48 @@
     align-items: center;
     gap: 16px;
     background: #fff;
-    padding: 24px;
+    padding: 20px;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(64, 24, 116, 0.1);
+    margin: 0 auto;
+    max-width: 100%;
 }
 
 .pagination-info {
     font-size: 14px;
     color: #6c757d;
     font-weight: 500;
+    text-align: center;
 }
 
 .custom-pagination {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     flex-wrap: wrap;
-    justify-content: center;
+    width: 100%;
 }
 
 .page-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
     background: linear-gradient(135deg, #401874, #6B46C1);
     color: white;
     text-decoration: none;
-    border-radius: 10px;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.3s ease;
     border: none;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(64, 24, 116, 0.3);
+    white-space: nowrap;
+    min-height: 40px;
 }
 
 .page-btn:hover:not(.disabled) {
@@ -284,18 +280,19 @@
 .page-numbers {
     display: flex;
     gap: 4px;
-    margin: 0 16px;
-    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
+    margin: 0 8px;
 }
 
 .page-num {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     text-decoration: none;
     color: #401874;
     font-weight: 600;
@@ -317,55 +314,113 @@
     color: white;
     border-color: rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 15px rgba(64, 24, 116, 0.3);
-    transform: scale(1.1);
 }
 
-/* Responsive */
+/* Responsive - Tablets */
 @media (max-width: 768px) {
     .pagination-container {
         padding: 16px;
         margin: 0 16px;
+        gap: 12px;
     }
     
     .custom-pagination {
         gap: 6px;
+        flex-direction: column;
     }
     
     .page-btn {
-        padding: 10px 16px;
-        font-size: 13px;
+        padding: 10px 14px;
+        font-size: 12px;
+        min-width: 80px;
     }
     
     .page-numbers {
-        margin: 0 8px;
-        gap: 2px;
+        margin: 8px 0;
+        gap: 3px;
+        order: -1; /* Números primero en tablet */
     }
     
     .page-num {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         font-size: 13px;
     }
     
     .pagination-info {
         font-size: 12px;
-        text-align: center;
+        order: 1; /* Info al final en tablet */
     }
 }
 
+/* Responsive - Móviles */
 @media (max-width: 480px) {
-    .page-btn i {
-        display: none;
+    .pagination-container {
+        padding: 12px;
+        margin: 0 8px;
+        gap: 10px;
+    }
+    
+    .custom-pagination {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .page-btn {
-        padding: 10px 12px;
+        padding: 8px 12px;
+        font-size: 12px;
+        min-width: 70px;
+    }
+    
+    .page-btn i {
+        display: none; /* Ocultar iconos en móvil */
     }
     
     .page-numbers {
+        margin: 0;
+        gap: 2px;
         max-width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        padding: 4px 0;
+        justify-content: flex-start;
+    }
+    
+    .page-num {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+        flex-shrink: 0; /* Evitar que se compriman */
+        border-radius: 6px;
+    }
+    
+    .pagination-info {
+        font-size: 11px;
+        line-height: 1.3;
+    }
+}
+
+/* Móviles muy pequeños */
+@media (max-width: 320px) {
+    .pagination-container {
+        padding: 10px;
+        margin: 0 4px;
+    }
+    
+    .page-numbers {
+        gap: 1px;
+    }
+    
+    .page-num {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
+    
+    .page-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
     }
 }
 
@@ -385,10 +440,29 @@
     animation: fadeIn 0.5s ease-out;
 }
 
-/* Focus states para accesibilidad */
+/* Estados de foco para accesibilidad */
 .page-btn:focus,
 .page-num:focus {
     outline: 2px solid #401874;
     outline-offset: 2px;
+}
+
+/* Estilo para scroll horizontal en números de página (móvil) */
+.page-numbers::-webkit-scrollbar {
+    height: 4px;
+}
+
+.page-numbers::-webkit-scrollbar-track {
+    background: rgba(64, 24, 116, 0.1);
+    border-radius: 2px;
+}
+
+.page-numbers::-webkit-scrollbar-thumb {
+    background: rgba(64, 24, 116, 0.3);
+    border-radius: 2px;
+}
+
+.page-numbers::-webkit-scrollbar-thumb:hover {
+    background: rgba(64, 24, 116, 0.5);
 }
 </style>

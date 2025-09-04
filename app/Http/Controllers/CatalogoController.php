@@ -10,52 +10,76 @@ class CatalogoController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Articulo::with(['opciones', 'categoria', 'imagenPrincipal'])->where('activo', true);
+        // Construir la consulta base
+        $query = Articulo::with(['imagenPrincipal', 'categoria']);
         
-        // Búsqueda
+        // Filtro por búsqueda
         if ($request->filled('buscar')) {
             $buscar = $request->get('buscar');
             $query->where(function($q) use ($buscar) {
-                $q->where('nombre', 'like', "%{$buscar}%")
-                  ->orWhere('descripcion', 'like', "%{$buscar}%")
-                  ->orWhere('codigo', 'like', "%{$buscar}%");
+                $q->where('nombre', 'like', '%' . $buscar . '%')
+                  ->orWhere('descripcion', 'like', '%' . $buscar . '%')
+                  ->orWhere('codigo', 'like', '%' . $buscar . '%');
             });
         }
         
         // Filtro por categoría
         if ($request->filled('categoria')) {
-            $query->where('categoria_id', $request->categoria);
+            $query->where('categoria_id', $request->get('categoria'));
         }
         
-        // Filtro por descuentos
-        if ($request->filled('solo_descuentos')) {
+        // Filtro por solo descuentos
+        if ($request->filled('solo_descuentos') && $request->get('solo_descuentos') == '1') {
             $query->where('tiene_descuento', true);
         }
         
-        $articulos = $query->orderBy('nombre')->paginate(12);
-        $categorias = Categoria::where('activa', true)->get();
+        // Ordenar y paginar
+        $articulos = $query->latest()->paginate(12);
+        
+        // ✅ LÍNEA CLAVE: Conservar parámetros en paginación
+        $articulos->appends($request->query());
+        
+        // Obtener categorías para los filtros
+        $categorias = Categoria::orderBy('nombre')->get();
         
         return view('catalogo.index', compact('articulos', 'categorias'));
     }
     
-    public function categoria(Categoria $categoria)
+    public function categoria(Categoria $categoria, Request $request)
     {
-        $articulos = $categoria->articulos()
-                              ->with('opciones')
-                              ->where('activo', true)
-                              ->paginate(12);
-        $categorias = Categoria::where('activa', true)->get();
+        // Método para la ruta /categoria/{categoria:slug}
+        $query = $categoria->articulos()->with(['imagenPrincipal']);
         
-        return view('catalogo.categoria', compact('categoria', 'articulos', 'categorias'));
+        // Filtro por búsqueda
+        if ($request->filled('buscar')) {
+            $buscar = $request->get('buscar');
+            $query->where(function($q) use ($buscar) {
+                $q->where('nombre', 'like', '%' . $buscar . '%')
+                  ->orWhere('descripcion', 'like', '%' . $buscar . '%')
+                  ->orWhere('codigo', 'like', '%' . $buscar . '%');
+            });
+        }
+        
+        // Filtro por solo descuentos
+        if ($request->filled('solo_descuentos') && $request->get('solo_descuentos') == '1') {
+            $query->where('tiene_descuento', true);
+        }
+        
+        $articulos = $query->latest()->paginate(12);
+        
+        // ✅ También conservar parámetros aquí
+        $articulos->appends($request->query());
+        
+        $categorias = Categoria::orderBy('nombre')->get();
+        
+        return view('catalogo.categoria', compact('articulos', 'categoria', 'categorias'));
     }
     
     public function show(Articulo $articulo)
     {
-        if (!$articulo->activo) {
-            abort(404);
-        }
-        
-        $articulo->load(['opciones', 'imagenes']);
+        $articulo->load(['imagenes' => function($query) {
+            $query->orderBy('orden');
+        }, 'categoria', 'opciones']);
         
         return view('catalogo.show', compact('articulo'));
     }
