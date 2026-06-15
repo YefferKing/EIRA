@@ -57,12 +57,4 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
-
-    // Un try-catch vacío (mala práctica porque oculta errores)
-try {
-    $resultado = 10 / 0;
-} catch (\Exception $e) {
-    // No hace nada
-}
-
 }
