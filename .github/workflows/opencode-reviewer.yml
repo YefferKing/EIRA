@@ -20,11 +20,17 @@ jobs:
       - name: PR Agent con OpenCode GO
         uses: Codium-ai/pr-agent@main
         env:
-          CONFIG.MODEL_PROVIDER: "openai" 
+          # Proveedor estándar compatible
+          CONFIG.MODEL_PROVIDER: "openai"
           OPENAI.BASE_URL: "https://opencode.ai/zen/go/v1"
-          OPENAI.API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          
+          # Corrección de la variable del Token (Formato global obligatorio)
+          OPENAI_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CONFIG.MODEL: "qwen-3.7-plus" 
+          
+          # Modelo y forzado de límites para evitar el error de MAX_TOKENS
+          CONFIG.MODEL: "qwen-3.7-plus"
+          CONFIG.CUSTOM_MODEL_MAX_TOKENS: 32000
           
           # Acciones automáticas al abrir el PR
           PR_DESCRIPTION.PUBLISH_DESCRIPTION_AS_COMMENT: true
