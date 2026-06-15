@@ -1,4 +1,4 @@
-name: Revision con OpenCode GO
+name: Revision con OpenCode GO Nata
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  pr_agent_job:
+  review_pr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del codigo
@@ -17,21 +17,77 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: PR Agent con OpenCode GO
-        uses: Codium-ai/pr-agent@main
-        env:
-          # Proveedor estándar compatible
-          CONFIG.MODEL_PROVIDER: "openai"
-          OPENAI.BASE_URL: "https://opencode.ai/zen/go/v1"
-          
-          # Corrección de la variable del Token (Formato global obligatorio)
-          OPENAI_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-          # Modelo y forzado de límites para evitar el error de MAX_TOKENS
-          CONFIG.MODEL: "qwen-3.7-plus"
-          CONFIG.CUSTOM_MODEL_MAX_TOKENS: 32000
-          
-          # Acciones automáticas al abrir el PR
-          PR_DESCRIPTION.PUBLISH_DESCRIPTION_AS_COMMENT: true
-          PR_CODE_SUGGESTIONS.NUM_CODE_SUGGESTIONS: 4
+      - name: Obtener cambios del PR y consultar IA
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const execSync = require('child_process').execSync;
+            
+            // 1. Obtener el diff (los cambios de código)
+            let diff = "";
+            try {
+              execSync('git fetch origin ${{ github.base_ref }}');
+              diff = execSync('git diff origin/${{ github.base_ref }}...HEAD').toString();
+            } catch (e) {
+              console.log("Error obteniendo el diff de git:", e);
+              return;
+            }
+
+            if (!diff || diff.trim() === "") {
+              console.log("No hay cambios de código significativos para revisar.");
+              return;
+            }
+
+            // Reducir el tamaño si es muy largo
+            const diffCortado = diff.substring(0, 15000);
+
+            // 2. Armar el prompt para tu bot revisor
+            const prompt = `Actúa como un Ingeniero de Software Senior experto en PHP y Laravel. 
+            Analiza el siguiente 'git diff' de un Pull Request enviado por un desarrollador del equipo.
+            Tu objetivo es detectar bugs críticos, vulnerabilidades de seguridad (como SQL injection, variables expuestas) o malas prácticas severas (como bloques try-catch vacíos que ocultan excepciones).
+
+            IMPORTANTE: Si todo está perfecto, responde únicamente con "Todo se ve correcto". 
+            Si encuentras fallas, enuméralas de forma clara, directa y constructiva indicando el archivo afectado.
+
+            Aquí están los cambios del Pull Request:\n\n${diffCortado}`;
+
+            // 3. Llamar directamente a la API de OpenCode GO usando fetch estándar
+            console.log("Enviando cambios a OpenCode GO...");
+            let respuestaIA = "";
+            try {
+              const response = await fetch("https://opencode.ai/zen/go/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer ${ { secrets.OPENCODE_API_KEY } }".replace(/\s+/g, ''),
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  model: "qwen-3.7-plus",
+                  messages: [
+                    { role: "user", content: prompt }
+                  ],
+                  temperature: 0.2
+                })
+              });
+
+              if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Status ${response.status}: ${errText}`);
+              }
+
+              const data = await response.json();
+              respuestaIA = data.choices[0].message.content;
+            } catch (apiError) {
+              console.error("Error en la API de OpenCode:", apiError);
+              respuestaIA = "⚠️ El bot de revisión automática tuvo un problema técnico al conectar con el proveedor de IA.";
+            }
+
+            // 4. Publicar el comentario directamente en el Pull Request de GitHub
+            console.log("Publicando resultado en el PR...");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `### 🤖 Revisión Automatizada (OpenCode GO)\n\n${respuestaIA}`
+            });
