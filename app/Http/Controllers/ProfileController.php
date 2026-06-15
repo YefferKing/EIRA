@@ -57,4 +57,11 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+try {
+    $resultado = 10 / 0;
+} catch (\Exception $e) {
+    // No hace nada
+}
+
 }
