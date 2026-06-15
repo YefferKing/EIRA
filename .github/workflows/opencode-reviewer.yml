@@ -1,4 +1,4 @@
-name: Revision con OpenCode GO Final
+name: Rastreador de Modelos OpenCode
 
 on:
   pull_request:
@@ -9,67 +9,24 @@ permissions:
   pull-requests: write
 
 jobs:
-  review_pr:
+  list_models:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout del codigo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Obtener cambios del PR y consultar OpenCode GO
+      - name: Consultar modelos disponibles
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const execSync = require('child_process').execSync;
-            
-            // 1. Obtener el diff (los cambios de código)
-            let diff = "";
-            try {
-              execSync('git fetch origin ${{ github.base_ref }}');
-              diff = execSync('git diff origin/${{ github.base_ref }}...HEAD').toString();
-            } catch (e) {
-              console.log("Error obteniendo el diff de git:", e);
-              return;
-            }
-
-            if (!diff || diff.trim() === "") {
-              console.log("No hay cambios de código significativos para revisar.");
-              return;
-            }
-
-            const diffCortado = diff.substring(0, 15000);
-
-            // 2. Armar el prompt para el revisor
-            const prompt = `Actúa como un Ingeniero de Software Senior experto en PHP y Laravel. 
-            Analiza el siguiente 'git diff' de un Pull Request enviado por un desarrollador del equipo.
-            Tu objetivo es detectar bugs críticos, vulnerabilidades de seguridad o malas prácticas severas (como bloques try-catch vacíos que ocultan excepciones y la división por cero).
-
-            IMPORTANTE: Si todo está perfecto, responde únicamente con "Todo se ve correcto". 
-            Si encuentras fallas, enuméralas de forma clara, directa y constructiva indicando el archivo afectado.
-
-            Aquí están los cambios del Pull Request:\n\n${diffCortado}`;
-
-            // 3. Llamar directamente a la API usando tu variable OPENCODE_API_KEY
-            console.log("Enviando cambios a OpenCode GO...");
-            let respuestaIA = "";
             try {
               const apiKey = `${{ secrets.OPENCODE_API_KEY }}`;
               
-              const response = await fetch("https://opencode.ai/zen/go/v1/chat/completions", {
-                method: "POST",
+              // Llamamos al endpoint estándar de OpenAI para listar modelos
+              const response = await fetch("https://opencode.ai/zen/go/v1/models", {
+                method: "GET",
                 headers: {
                   "Authorization": `Bearer ${apiKey}`,
                   "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  model: "deepseek-chat", // Mapeo estándar universal para proxies de OpenAI
-                  messages: [
-                    { role: "user", content: prompt }
-                  ],
-                  temperature: 0.2
-                })
+                }
               });
 
               if (!response.ok) {
@@ -78,17 +35,22 @@ jobs:
               }
 
               const data = await response.json();
-              respuestaIA = data.choices[0].message.content;
-            } catch (apiError) {
-              console.error("Error en la API de OpenCode:", apiError);
-              respuestaIA = `⚠️ El bot de revisión automática tuvo un problema técnico.\n\n**Detalle del error:** ${apiError.message}`;
-            }
+              
+              // Mapeamos los IDs de los modelos encontrados
+              const listaModelos = data.data.map(m => `- \`${m.id}\``).join("\n");
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `### 📋 Modelos disponibles en tu OpenCode GO:\n\n${listaModelos}`
+              });
 
-            // 4. Publicar el comentario directamente en el Pull Request de GitHub
-            console.log("Publicando resultado en el PR...");
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `### 🤖 Revisión Automatizada (OpenCode GO)\n\n${respuestaIA}`
-            });
+            } catch (error) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `⚠️ No se pudo obtener la lista de modelos.\n\n**Detalle:** ${error.message}`
+              });
+            }
